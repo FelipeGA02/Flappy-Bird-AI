@@ -13,11 +13,11 @@
 
 Treino
 Rodar treino sem renderização:
-
-python -m src.train --episodes 5000 --render 0
+   ```
+   python -m src.train --episodes 5000 --render 0
 Assistir jogando com modelo salvo:
-
-python -m src.train --watch saved_models/dqn_flappybird.pt --render 1
+   ```
+   python -m src.train --watch saved_models/dqn_flappybird.pt --render 1
 Recompensas
 +1 por passo vivo
 
@@ -27,4 +27,4 @@ Recompensas
 
 Ações
 
-1 = flap / pular
+espaço = flap / pular
