@@ -1,54 +1,120 @@
-import argparse
-from collections import deque
+from __future__ import annotations
+import os, sys, argparse, time
 import numpy as np
-from tqdm import trange
-from .env import FlappyBirdEnv, Config
-from .dqn_agent import DQNAgent
-from .utils import set_seed, moving_average
+from tqdm import tqdm
 
-def train(episodes: int = 2000, render_every: int = 0, seed: int = 42,
-        save_path: str = "checkpoints/best.pt"):
-    set_seed(seed)
-    env = FlappyBirdEnv(render_mode=None, config=Config(seed=seed))
-    agent = DQNAgent(state_dim=4, action_dim=2)
-    best_score = -1
-    scores = []
-    ma50 = []
-    
-    for ep in trange(episodes, desc="Training"):
-        obs, _ = env.reset()
+# garante que "src" esteja no sys.path quando rodar como módulo
+ROOT = os.path.dirname(os.path.abspath(__file__))
+PROJECT = os.path.abspath(os.path.join(ROOT, ".."))
+if PROJECT not in sys.path:
+    sys.path.append(PROJECT)
+
+from env.flappy_env import FlappyBirdEnv
+from ai.dqn_agent import DQNAgent
+
+def train(args):
+    env = FlappyBirdEnv(assets_dir=os.path.join(PROJECT, "assets"),
+                        render_mode="human" if args.render else None,
+                        frame_skip=args.frame_skip)
+
+    state, info = env.reset()
+    agent = DQNAgent(
+        state_dim=state.shape[0],
+        action_dim=env.action_space.n,
+        lr=args.lr,
+        gamma=args.gamma,
+        epsilon_start=args.eps_start,
+        epsilon_end=args.eps_end,
+        epsilon_decay_steps=args.eps_decay_steps,
+        buffer_capacity=args.buffer,
+        batch_size=args.batch,
+        target_sync=args.target_sync
+    )
+
+    best_score = 0
+    os.makedirs(os.path.join(PROJECT, "saved_models"), exist_ok=True)
+    save_path = os.path.join(PROJECT, "saved_models", "dqn_flappybird.pt")
+
+    ep_bar = tqdm(range(args.episodes), desc="Episodes")
+    global_step = 0
+    for ep in ep_bar:
+        state, _ = env.reset()
         done = False
-        total_reward = 0.0
-        ep_score = 0
-        if render_every and (ep % render_every == 0):
-            env.render_mode = "human"
-        else:
-            env.render_mode = None
+        ep_reward = 0.0
+        ep_steps = 0
         while not done:
-            action = agent.act(obs)
-            next_obs, reward, terminated, truncated, info = env.step(action)
+            if args.render:
+                env.render()
+            action = agent.act(state, explore=True)
+            next_state, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
-            agent.push(obs, action, reward, next_obs, float(done))
-            loss, td = agent.learn()
-            obs = next_obs
-            total_reward += reward
-            ep_score = info.get("score", ep_score)
-        
-        scores.append(ep_score)
-        ma50 = moving_average(scores, 50)
-        
-        if ep_score > best_score:
-            best_score = ep_score
-            agent.save(save_path)
-    
-    env.close()
-    return np.array(scores), np.array(ma50)
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--episodes", type=int, default=6000)
-parser.add_argument("--render_every", type=int, default=0,
-help="render a cada N episódios (0 = nunca)")
-parser.add_argument("--seed", type=int, default=42)
-parser.add_argument("--save_path", type=str, default="checkpoints/best.pt")
-args = parser.parse_args()
-train(args.episodes, args.render_every, args.seed, args.save_path)
+            agent.remember(state, action, reward, next_state, float(done))
+            loss = agent.update()
+
+            state = next_state
+            ep_reward += reward
+            ep_steps += 1
+            global_step += 1
+
+            if args.watch:  # modo assistir não treina
+                pass
+
+        score = info.get("score", 0)
+        if score > best_score:
+            best_score = score
+            agent.save(save_path)
+
+        ep_bar.set_postfix(reward=f"{ep_reward:.0f}", score=score, best=best_score, eps=f"{agent.eps:.2f}")
+
+    env.close()
+    print(f"Treino finalizado. Melhor score: {best_score}. Modelo salvo em: {save_path}")
+
+def watch(args):
+    env = FlappyBirdEnv(assets_dir=os.path.join(PROJECT, "assets"),
+                        render_mode="human",
+                        frame_skip=args.frame_skip)
+    # carrega modelo
+    state, info = env.reset()
+    agent = DQNAgent(
+        state_dim=state.shape[0],
+        action_dim=env.action_space.n
+    )
+    agent.load(args.watch)
+
+    print("Assistindo o agente jogar. Feche a janela para encerrar.")
+    try:
+        while True:
+            state, _ = env.reset()
+            done = False
+            while not done:
+                env.render()
+                action = agent.act(state, explore=False)
+                state, _, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+    finally:
+        env.close()
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--episodes", type=int, default=2000)
+    parser.add_argument("--render", type=int, default=0)
+    parser.add_argument("--frame_skip", type=int, default=1)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--gamma", type=float, default=0.99)
+    parser.add_argument("--eps_start", type=float, default=1.0)
+    parser.add_argument("--eps_end", type=float, default=0.05)
+    parser.add_argument("--eps_decay_steps", type=int, default=50_000)
+    parser.add_argument("--buffer", type=int, default=100_000)
+    parser.add_argument("--batch", type=int, default=128)
+    parser.add_argument("--target_sync", type=int, default=1000)
+    parser.add_argument("--watch", type=str, default="")
+    args = parser.parse_args()
+
+    if args.watch:
+        watch(args)
+    else:
+        train(args)
+
+if __name__ == "__main__":
+    main()
