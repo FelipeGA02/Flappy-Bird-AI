@@ -3,17 +3,17 @@ Este repositório contém um ambiente minimalista do Flappy Bird e um agente
 DQN em PyTorch.
 ## Como usar
 1. Crie o ambiente virtual e instale dependências:
- ```bash
+ ```
 python -m venv .venv && source .venv/bin/activate # (Linux/macOS)
 # ou: .venv\Scripts\activate (Windows)
 pip install -r requirements.txt
  ```
 2. Treinar:
- ```bash
+ ```
 python -m src.train --episodes 2000 --render_every 0
  ```
 3. Jogar com o modelo treinado (render):
- ```bash
+ ```
 python -m src.play --checkpoint checkpoints/best.pt --fps 60
  ```
 ## Notas

@@ -24,11 +24,10 @@ def play(checkpoint: str, fps: int = 60, episodes: int = 5, seed: int = 123):
         time.sleep(0.5)
     env.close()
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--checkpoint", type=str, required=True)
-    parser.add_argument("--fps", type=int, default=60)
-    parser.add_argument("--episodes", type=int, default=5)
-    parser.add_argument("--seed", type=int, default=123)
-    args = parser.parse_args()
-    play(args.checkpoint, args.fps, args.episodes, args.seed)
+parser = argparse.ArgumentParser()
+parser.add_argument("--checkpoint", type=str, required=True)
+parser.add_argument("--fps", type=int, default=60)
+parser.add_argument("--episodes", type=int, default=5)
+parser.add_argument("--seed", type=int, default=123)
+args = parser.parse_args()
+play(args.checkpoint, args.fps, args.episodes, args.seed)

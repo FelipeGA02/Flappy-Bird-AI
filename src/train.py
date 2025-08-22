@@ -44,12 +44,11 @@ def train(episodes: int = 2000, render_every: int = 0, seed: int = 42,
     env.close()
     return np.array(scores), np.array(ma50)
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--episodes", type=int, default=6000)
-    parser.add_argument("--render_every", type=int, default=0,
-    help="render a cada N episódios (0 = nunca)")
-    parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--save_path", type=str, default="checkpoints/best.pt")
-    args = parser.parse_args()
-    train(args.episodes, args.render_every, args.seed, args.save_path)
+parser = argparse.ArgumentParser()
+parser.add_argument("--episodes", type=int, default=6000)
+parser.add_argument("--render_every", type=int, default=0,
+help="render a cada N episódios (0 = nunca)")
+parser.add_argument("--seed", type=int, default=42)
+parser.add_argument("--save_path", type=str, default="checkpoints/best.pt")
+args = parser.parse_args()
+train(args.episodes, args.render_every, args.seed, args.save_path)
