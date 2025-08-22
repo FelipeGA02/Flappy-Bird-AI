@@ -2,6 +2,7 @@ from __future__ import annotations
 import os, sys, argparse, time
 import numpy as np
 from tqdm import tqdm
+import pygame  # necessário para processar eventos
 
 # garante que "src" esteja no sys.path quando rodar como módulo
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -9,13 +10,15 @@ PROJECT = os.path.abspath(os.path.join(ROOT, ".."))
 if PROJECT not in sys.path:
     sys.path.append(PROJECT)
 
-from env.flappy_env import FlappyBirdEnv
-from ai.dqn_agent import DQNAgent
+from src.env.flappy_env import FlappyBirdEnv
+from src.ai.dqn_agent import DQNAgent
 
 def train(args):
-    env = FlappyBirdEnv(assets_dir=os.path.join(PROJECT, "assets"),
-                        render_mode="human" if args.render else None,
-                        frame_skip=args.frame_skip)
+    env = FlappyBirdEnv(
+        assets_dir=os.path.join(PROJECT, "assets"),
+        render_mode="human" if args.render else None,
+        frame_skip=args.frame_skip
+    )
 
     state, info = env.reset()
     agent = DQNAgent(
@@ -45,20 +48,20 @@ def train(args):
         while not done:
             if args.render:
                 env.render()
+                pygame.event.pump()       # processa eventos do pygame
+                time.sleep(1 / args.fps)  # controla FPS de renderização
+
             action = agent.act(state, explore=True)
             next_state, reward, terminated, truncated, info = env.step(action)
             done = terminated or truncated
 
             agent.remember(state, action, reward, next_state, float(done))
-            loss = agent.update()
+            agent.update()
 
             state = next_state
             ep_reward += reward
             ep_steps += 1
             global_step += 1
-
-            if args.watch:  # modo assistir não treina
-                pass
 
         score = info.get("score", 0)
         if score > best_score:
@@ -71,11 +74,13 @@ def train(args):
     print(f"Treino finalizado. Melhor score: {best_score}. Modelo salvo em: {save_path}")
 
 def watch(args):
-    env = FlappyBirdEnv(assets_dir=os.path.join(PROJECT, "assets"),
-                        render_mode="human",
-                        frame_skip=args.frame_skip)
-    # carrega modelo
-    state, info = env.reset()
+    env = FlappyBirdEnv(
+        assets_dir=os.path.join(PROJECT, "assets"),
+        render_mode="human",
+        frame_skip=args.frame_skip
+    )
+
+    state, _ = env.reset()
     agent = DQNAgent(
         state_dim=state.shape[0],
         action_dim=env.action_space.n
@@ -89,6 +94,9 @@ def watch(args):
             done = False
             while not done:
                 env.render()
+                pygame.event.pump()        # processa eventos do pygame
+                time.sleep(1 / args.fps)   # FPS de visualização
+
                 action = agent.act(state, explore=False)
                 state, _, terminated, truncated, info = env.step(action)
                 done = terminated or truncated
@@ -109,6 +117,7 @@ def main():
     parser.add_argument("--batch", type=int, default=128)
     parser.add_argument("--target_sync", type=int, default=1000)
     parser.add_argument("--watch", type=str, default="")
+    parser.add_argument("--fps", type=int, default=30)  # FPS ajustável
     args = parser.parse_args()
 
     if args.watch:
@@ -116,5 +125,4 @@ def main():
     else:
         train(args)
 
-if __name__ == "__main__":
-    main()
+main()

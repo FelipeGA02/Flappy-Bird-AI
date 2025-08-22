@@ -10,16 +10,7 @@
    # Linux/Mac
    source .venv/bin/activate
    pip install -r requirements.txt
-Estrutura de pastas
 
-flappybird_ai/
-  assets/        # adicione as imagens e sons
-  saved_models/  # modelos treinados
-  src/
-    ai/
-    env/
-    game/
-    train.py
 Treino
 Rodar treino sem renderização:
 
@@ -35,33 +26,5 @@ Recompensas
 -100 ao colidir
 
 Ações
-0 = não fazer nada
 
 1 = flap / pular
-
-Estrutura de diretórios detalhada
-flappybird_ai/
-│
-├── assets/
-│   ├── bird.png
-│   ├── pipe.png
-│   ├── background.png
-│   └── jump.mp3
-│
-├── saved_models/
-│   └── (gerado no treino)
-│
-└── src/
-    ├── __init__.py
-    ├── train.py
-    ├── game/
-    │   ├── __init__.py
-    │   ├── flappy_bird.py
-    │   └── utils.py
-    ├── env/
-    │   ├── __init__.py
-    │   └── flappy_env.py
-    └── ai/
-        ├── __init__.py
-        ├── dqn_agent.py
-        └── model.py
