@@ -1,5 +1,1 @@
 pygame
-gymnasium
-numpy
-torch
-tqdm
