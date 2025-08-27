@@ -14,6 +14,9 @@ bird_images = [
     pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'bird3.png'))),
 ]
 pipe_image = pygame.transform.scale2x(pygame.image.load(os.path.join('assets', 'pipe.png')))
+pygame.mixer.init()
+jump_sound = pygame.mixer.Sound(os.path.join('assets', 'jump.mp3'))
+point_sound = pygame.mixer.Sound(os.path.join('assets', 'point.mp3'))
 
 window_width = 500
 window_height = 800
@@ -42,6 +45,7 @@ class Bird:
         self.speed = -10.5
         self.time = 0
         self.height = self.y
+        jump_sound.play()
 
     def move(self):
         self.time += 1
@@ -253,6 +257,7 @@ def main(genomes, config):
 
         if add_pipe:
             points += 1
+            point_sound.play()
 
             velocidade_base = 5
             distancia_base = 140
